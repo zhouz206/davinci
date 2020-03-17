@@ -41,7 +41,7 @@ public class QuartzJobExecutor implements Job {
 
     private static final Logger scheduleLogger = LoggerFactory.getLogger(LogNameEnum.BUSINESS_SCHEDULE.getName());
 
-    private static ExecutorService executorService = Executors.newFixedThreadPool(4);
+    public static final ExecutorService executorService = Executors.newFixedThreadPool(4);
 
     @Override
     public void execute(JobExecutionContext jobExecutionContext) {
@@ -50,7 +50,7 @@ public class QuartzJobExecutor implements Job {
             TriggerKey triggerKey = jobExecutionContext.getTrigger().getKey();
             ScheduleJob scheduleJob = (ScheduleJob) jobExecutionContext.getMergedJobDataMap().get(QuartzHandler.getJobDataKey(triggerKey));
             if (scheduleJob == null) {
-                log.warn("scheduleJob is not found, {}", triggerKey.getName());
+            	scheduleLogger.warn("ScheduleJob({}) is not found", triggerKey.getName());
                 return;
             }
 
@@ -63,13 +63,11 @@ public class QuartzJobExecutor implements Job {
                     try {
                         scheduleService.execute(scheduleJob.getId());
                     } catch (Exception e) {
-                        e.printStackTrace();
-                        log.error(e.getMessage());
-                        scheduleLogger.error(e.getMessage());
+                        scheduleLogger.error("ScheduleJob({}) execute error:{}", scheduleJob.getId(), e.getMessage());
+                        scheduleLogger.error(e.getMessage(), e);
                     }
                 } else {
-                    log.warn("Unknown job type [{}], job ID: (:{})", jobType, scheduleJob.getId());
-                    scheduleLogger.warn("Unknown job type [{}], job ID: (:{})", jobType, scheduleJob.getId());
+                    scheduleLogger.warn("Unknown job type [{}], jobId(:{})", jobType, scheduleJob.getId());
                 }
             } else {
                 Object[] args = {
@@ -79,7 +77,6 @@ public class QuartzJobExecutor implements Job {
                         DateUtils.toyyyyMMddHHmmss(scheduleJob.getEndDate()),
                         scheduleJob.getCronExpression()
                 };
-                log.warn("ScheduleJob (:{}), current time [{}] is not within the planned execution time, StartTime: [{}], EndTime: [{}], Cron Expression: [{}]", args);
                 scheduleLogger.warn("ScheduleJob (:{}), current time [{}] is not within the planned execution time, StartTime: [{}], EndTime: [{}], Cron Expression: [{}]", args);
             }
         });
